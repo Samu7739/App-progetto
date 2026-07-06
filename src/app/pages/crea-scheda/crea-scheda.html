@@ -1,0 +1,438 @@
+<div class="gf-page crea-scheda-page">
+
+  <header class="page-header">
+    <a routerLink="/home" class="back-link">←</a>
+
+    <div>
+      <h1>Crea scheda</h1>
+      <p>{{ titoloStep }}</p>
+    </div>
+  </header>
+
+  <main class="crea-scheda-content">
+
+    <div class="step-indicator">
+      <span
+        [class.active]="isStepDatiScheda"
+        (click)="tornaAiDatiScheda()"
+      >
+        Scheda
+      </span>
+
+      <span
+        *ngFor="let giorno of giorni; let i = index"
+        [class.active]="stepCorrente === i + 1"
+        (click)="vaiAlGiorno(i)"
+      >
+        {{ i + 1 }}
+      </span>
+
+      <span [class.active]="isStepRiepilogo">
+        Fine
+      </span>
+    </div>
+
+    <p class="message error" *ngIf="errore">{{ errore }}</p>
+    <p class="message success" *ngIf="successo">{{ successo }}</p>
+
+    <section class="gf-card form-card" *ngIf="isStepDatiScheda">
+
+      <h2>Dati scheda</h2>
+
+      <div class="gf-field">
+        <label class="gf-label">Nome scheda</label>
+        <input
+          class="gf-input"
+          type="text"
+          placeholder="Es. Massa 4 giorni"
+          [(ngModel)]="nome"
+        />
+      </div>
+
+      <div class="gf-field">
+        <label class="gf-label">Obiettivo</label>
+        <select
+          class="gf-input"
+          [(ngModel)]="obiettivo"
+        >
+          <option value="">Seleziona obiettivo</option>
+
+          <option
+            *ngFor="let item of obiettivi"
+            [value]="item"
+          >
+            {{ item }}
+          </option>
+        </select>
+      </div>
+
+      <div class="gf-field" *ngIf="obiettivo === 'Personalizzato'">
+        <label class="gf-label">Obiettivo personalizzato</label>
+        <input
+          class="gf-input"
+          type="text"
+          placeholder="Scrivi il tuo obiettivo"
+          [(ngModel)]="obiettivoPersonalizzato"
+        />
+      </div>
+
+      <div class="gf-field">
+        <label class="gf-label">Numero giorni</label>
+        <select
+          class="gf-input"
+          [(ngModel)]="numeroGiorni"
+          (change)="onNumeroGiorniChange()"
+        >
+          <option
+            *ngFor="let numero of opzioniNumeroGiorni"
+            [ngValue]="numero"
+          >
+            {{ numero }}
+          </option>
+        </select>
+      </div>
+
+      <div class="gf-field">
+        <label class="gf-label">Note scheda</label>
+        <textarea
+          class="gf-input"
+          rows="4"
+          placeholder="Note generali..."
+          [(ngModel)]="note"
+        ></textarea>
+      </div>
+
+      <button
+        class="gf-btn gf-btn-primary"
+        type="button"
+        (click)="confermaDatiScheda()"
+      >
+        Conferma e continua
+      </button>
+
+    </section>
+
+    <section class="gf-card giorno-card" *ngIf="giornoCorrente as giorno">
+
+      <div class="giorno-title-row">
+        <h2>Giorno {{ stepCorrente }}</h2>
+       <span>{{ testoNumeroEsercizi(giorno) }}</span>
+       
+      </div>
+
+      <div class="gf-field">
+        <label class="gf-label">Giorno della settimana</label>
+        <select
+          class="gf-input"
+          [(ngModel)]="giorno.nome"
+        >
+          <option value="">Seleziona giorno</option>
+
+          <option
+            *ngFor="let giornoSettimana of giorniSettimana"
+            [value]="giornoSettimana"
+          >
+            {{ giornoSettimana }}
+          </option>
+        </select>
+      </div>
+
+      <div
+        class="esercizio-box"
+        *ngFor="let esercizioForm of eserciziVisibili(giorno); let esercizioIndex = index"
+      >
+
+        <div class="esercizio-header">
+          <h3>
+            Esercizio {{ indiceEsercizioReale(giorno, esercizioIndex) + 1 }}
+          </h3>
+
+          <button
+            class="remove-btn"
+            type="button"
+            (click)="rimuoviEsercizio(giorno, indiceEsercizioReale(giorno, esercizioIndex))"
+            *ngIf="giorno.esercizi.length > 1"
+          >
+            Rimuovi
+          </button>
+        </div>
+
+        <div class="gf-field">
+          <label class="gf-label">Categoria muscolare</label>
+          <select
+            class="gf-input"
+            [(ngModel)]="esercizioForm.categoriaId"
+            (change)="onCategoriaChange(esercizioForm)"
+          >
+            <option [ngValue]="null">Seleziona categoria</option>
+
+            <option
+              *ngFor="let categoria of categorie"
+              [ngValue]="categoria.id"
+            >
+              {{ categoria.nome }}
+            </option>
+          </select>
+        </div>
+
+        <div class="gf-field">
+          <label class="gf-label">Esercizio</label>
+          <select
+            class="gf-input"
+            [(ngModel)]="esercizioForm.esercizioId"
+            [disabled]="!esercizioForm.categoriaId"
+          >
+            <option [ngValue]="null">Seleziona esercizio</option>
+
+            <option
+              *ngFor="let esercizio of esercizioForm.eserciziDisponibili"
+              [ngValue]="esercizio.id"
+            >
+              {{ esercizio.nome }}
+            </option>
+          </select>
+        </div>
+
+        <div class="mini-grid">
+          <div class="gf-field">
+            <label class="gf-label">Serie</label>
+            <select
+              class="gf-input"
+              #serieSelect
+              (change)="onSerieChange(esercizioForm, serieSelect.value)"
+              [value]="esercizioForm.usaSeriePersonalizzate ? 'Personalizza' : esercizioForm.serie"
+            >
+              <option
+                *ngFor="let serie of opzioniSerie"
+                [value]="serie"
+              >
+                {{ serie }}
+              </option>
+            </select>
+          </div>
+
+          <div class="gf-field">
+            <label class="gf-label">Ripetizioni</label>
+            <select
+              class="gf-input"
+              #ripetizioniSelect
+              (change)="onRipetizioniChange(esercizioForm, ripetizioniSelect.value)"
+              [value]="esercizioForm.usaRipetizioniPersonalizzate ? 'Personalizza' : esercizioForm.ripetizioniTarget"
+            >
+              <option
+                *ngFor="let reps of opzioniRipetizioni"
+                [value]="reps"
+              >
+                {{ reps }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div class="mini-grid" *ngIf="esercizioForm.usaSeriePersonalizzate || esercizioForm.usaRipetizioniPersonalizzate">
+
+          <div class="gf-field" *ngIf="esercizioForm.usaSeriePersonalizzate">
+            <label class="gf-label">Serie personalizzate</label>
+            <input
+              class="gf-input"
+              type="number"
+              min="1"
+              [(ngModel)]="esercizioForm.seriePersonalizzate"
+            />
+          </div>
+
+          <div class="gf-field" *ngIf="esercizioForm.usaRipetizioniPersonalizzate">
+            <label class="gf-label">Ripetizioni personalizzate</label>
+            <input
+              class="gf-input"
+              type="text"
+              placeholder="Es. 8-12"
+              [(ngModel)]="esercizioForm.ripetizioniPersonalizzate"
+            />
+          </div>
+
+        </div>
+
+        <div class="gf-field">
+          <label class="gf-label">Recupero</label>
+          <select
+            class="gf-input"
+            #recuperoSelect
+            (change)="onRecuperoChange(esercizioForm, +recuperoSelect.value)"
+            [value]="esercizioForm.usaRecuperoPersonalizzato ? -1 : esercizioForm.recuperoSecondi"
+          >
+            <option
+              *ngFor="let recupero of opzioniRecupero"
+              [value]="recupero.value"
+            >
+              {{ recupero.label }}
+            </option>
+          </select>
+        </div>
+
+        <div class="gf-field" *ngIf="esercizioForm.usaRecuperoPersonalizzato">
+          <label class="gf-label">Recupero personalizzato in secondi</label>
+          <input
+            class="gf-input"
+            type="number"
+            min="0"
+            placeholder="Es. 75"
+            [(ngModel)]="esercizioForm.recuperoPersonalizzato"
+          />
+        </div>
+
+        <div class="gf-field">
+          <label class="gf-label">Note esercizio</label>
+          <textarea
+            class="gf-input"
+            rows="2"
+            placeholder="Es. tecnica, inclinazione, presa..."
+            [(ngModel)]="esercizioForm.note"
+          ></textarea>
+        </div>
+
+      </div>
+
+      <div class="exercise-pagination" *ngIf="giorno.esercizi.length > eserciziPerPagina">
+        <button
+          type="button"
+          (click)="paginaEserciziPrecedente(giorno)"
+          [disabled]="!haPaginaEserciziPrecedente(giorno)"
+        >
+          ← Precedenti
+        </button>
+
+        <span>
+          {{ giorno.paginaEsercizi + 1 }}
+        </span>
+
+        <button
+          type="button"
+          (click)="paginaEserciziSuccessiva(giorno)"
+          [disabled]="!haPaginaEserciziSuccessiva(giorno)"
+        >
+          Successivi →
+        </button>
+      </div>
+
+      <button
+        class="add-exercise-btn"
+        type="button"
+        (click)="aggiungiEsercizio(giorno)"
+      >
+        + Aggiungi esercizio
+      </button>
+
+      <div class="gf-field note-giorno-field">
+        <label class="gf-label">Note giorno</label>
+        <textarea
+          class="gf-input"
+          rows="3"
+          placeholder="Note sul giorno..."
+          [(ngModel)]="giorno.note"
+        ></textarea>
+      </div>
+
+      <div class="wizard-actions">
+        <button
+          class="gf-btn gf-btn-secondary"
+          type="button"
+          (click)="tornaIndietro()"
+        >
+          ← Indietro
+        </button>
+
+        <button
+          class="gf-btn gf-btn-primary"
+          type="button"
+          (click)="confermaGiorno()"
+        >
+          {{ stepCorrente === numeroGiorni ? 'Vai al riepilogo' : 'Conferma giorno' }}
+        </button>
+      </div>
+
+    </section>
+
+  
+<section class="gf-card riepilogo-card" *ngIf="isStepRiepilogo">
+
+  <h2>Riepilogo scheda</h2>
+
+  <div class="summary-main">
+    <p><strong>Nome:</strong> {{ nome }}</p>
+    <p><strong>Obiettivo:</strong> {{ obiettivoFinale }}</p>
+    <p><strong>Giorni:</strong> {{ numeroGiorni }}</p>
+    <p *ngIf="note"><strong>Note:</strong> {{ note }}</p>
+  </div>
+
+  <div
+    class="summary-day"
+    *ngFor="let giorno of giorni; let i = index"
+  >
+
+    <div class="summary-day-header">
+
+      <div>
+        <h3>{{ i + 1 }}. {{ giorno.nome }}</h3>
+        <p>{{ testoNumeroEsercizi(giorno) }}</p>
+      </div>
+
+      <button
+        type="button"
+        (click)="vaiAlGiorno(i)"
+      >
+        Modifica
+      </button>
+
+    </div>
+
+    <p *ngIf="giorno.note" class="summary-note">
+      {{ giorno.note }}
+    </p>
+
+    <ul>
+      <li
+        *ngFor="let esercizio of eserciziRiepilogoVisibili(giorno); let exIndex = index"
+      >
+        Esercizio {{ exIndex + 1 }} —
+        {{ esercizio.serie }} serie x {{ esercizio.ripetizioniTarget }} reps,
+        recupero {{ esercizio.recuperoSecondi }} sec
+      </li>
+    </ul>
+
+    <button
+      class="summary-toggle-btn"
+      type="button"
+      *ngIf="giorno.esercizi.length > 3"
+      (click)="toggleRiepilogoGiorno(giorno)"
+    >
+      {{ giorno.riepilogoAperto ? 'Mostra meno' : 'Mostra tutti gli esercizi' }}
+    </button>
+
+  </div>
+
+  <div class="wizard-actions">
+
+    <button
+      class="gf-btn gf-btn-secondary"
+      type="button"
+      (click)="tornaIndietro()"
+    >
+      ← Indietro
+    </button>
+
+    <button
+      class="gf-btn gf-btn-primary"
+      type="button"
+      (click)="salvaScheda()"
+      [disabled]="saving"
+    >
+      {{ saving ? 'Salvataggio...' : 'Salva scheda' }}
+    </button>
+
+  </div>
+
+</section>
+  </main>
+
+</div>
